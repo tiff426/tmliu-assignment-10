@@ -5,12 +5,14 @@
 
 import os
 import torch
-import torchvision.transforms as transforms
+#import torchvision.transforms as transforms
 from PIL import Image
-from open_clip import create_model_and_transforms, tokenizer
+#from open_clip import create_model_and_transforms, tokenizer
+import open_clip
 import torch.nn.functional as F
-import pandas as pd
+# import pandas as pd
 from tqdm import tqdm
+import numpy as np
 
 # # Configuration
 # device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -67,9 +69,25 @@ from tqdm import tqdm
 def find_image(df, query_embedding):
     impath = None
     max_similarity = -1
+
+    # Ensure query_embedding is a PyTorch tensor and has the correct dimensions
+    query_embedding = torch.tensor(query_embedding).unsqueeze(0) if query_embedding.ndim == 1 else torch.tensor(query_embedding)
+
     for _, row in df.iterrows():
-        dataset_embedding = torch.tensor(row['embedding'])  # Convert numpy array to tensor
-        similarity = F.cosine_similarity(query_embedding, dataset_embedding.unsqueeze(0)).item()
+        # Check if the embedding exists and is valid
+        if not isinstance(row['embedding'], (list, torch.Tensor, np.ndarray)):
+            print(f"Invalid embedding at row {_}: {row['embedding']}")
+            continue
+        
+        # Convert the dataset embedding to a PyTorch tensor
+        dataset_embedding = torch.tensor(row['embedding'], dtype=torch.float32)
+        
+        # Ensure correct dimensions for cosine similarity
+        dataset_embedding = dataset_embedding.unsqueeze(0) if dataset_embedding.ndim == 1 else dataset_embedding
+
+        # Compute cosine similarity
+        similarity = F.cosine_similarity(query_embedding, dataset_embedding).item()
+
         if similarity > max_similarity:
             max_similarity = similarity
             impath = row['file_name']  # Store the image path of the closest match
@@ -81,7 +99,7 @@ def find_image(df, query_embedding):
     return impath, max_similarity
 
 def embed_image(image_path):
-    model, _, preprocess = create_model_and_transforms('ViT-B/32', pretrained='openai')
+    model, _, preprocess = open_clip.create_model_and_transforms('ViT-B/32', pretrained='openai')
 
     # This converts the image to a tensor
     #image = preprocess(Image.open("house.jpg")).unsqueeze(0)
@@ -97,10 +115,10 @@ def embed_image(image_path):
     return query_embedding
 
 def embed_text(text_query):
-    model, _, preprocess = create_model_and_transforms('ViT-B/32', pretrained='openai') # wait do i want image and text to u se the same model tho
-    tokenizer = open_clip.get_tokenizer('ViT-B-32')
+    model, _, preprocess = open_clip.create_model_and_transforms('ViT-B/32', pretrained='openai') # wait do i want image and text to u se the same model tho
+    token = open_clip.get_tokenizer('ViT-B-32')
     model.eval()
-    text = tokenizer([text_query]) # change this to be what you want...
+    text = token([text_query]) # change this to be what you want...
     query_embedding = F.normalize(model.encode_text(text))
     return query_embedding
 

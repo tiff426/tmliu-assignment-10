@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory
 import os
 # from neural_networks import visualize
-from image_search import compute_image_embeddings, find_image, embed_image, embed_text, embed_hybrid
+from image_search import find_image, embed_image, embed_text, embed_hybrid
 from PIL import Image
 import pandas as pd
 import torch

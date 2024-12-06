@@ -50,7 +50,7 @@ document.getElementById("query-form").addEventListener("submit", async function(
 
     // Send the request to the backend
     try {
-        const response = await fetch("/search", {
+        const response = await fetch("/image_search", {
             method: "POST",
             body: formData,
         });

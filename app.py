@@ -27,13 +27,13 @@ def image_search():
         text_query = request.form['text_query']
         # Get the query embedding for the text
         query_embedding = embed_text(text_query)
-        images, max_similarity = find_image(df, query_embedding)  # df is your dataset with embeddings
+        images, max_similarities = find_image(df, query_embedding)  # df is your dataset with embeddings
     elif query_type == "image":
         image_file = request.files['image_query']
         image_path = image_file.filename  # You might need to save the image or use a temporary path
         # Get the query embedding for the image
         query_embedding = embed_image(image_path)
-        images, max_similarity = find_image(df, query_embedding)  # df is your dataset with embeddings
+        images, max_similarities = find_image(df, query_embedding)  # df is your dataset with embeddings
     elif query_type == "hybrid":
         text_query = request.form['text_query']
         weight = float(request.form['weight'])
@@ -44,9 +44,16 @@ def image_search():
         text_query_embedding = embed_text(text_query)
         # Combine the embeddings using the hybrid method
         query_embedding = embed_hybrid(image_path, text_query)
-        images, max_similarity = find_image(df, query_embedding)  # df is your dataset with embeddings
+        images, max_similarities = find_image(df, query_embedding)  # df is your dataset with embeddings
     
-    return jsonify({"images": images, "similarity": max_similarity})
+    # results = [
+    #     {
+    #         "image_url": f"/results/{os.path.basename(images)}",
+    #         "similarity_score": max_similarity,
+    #     }
+    # ]   
+    return jsonify({"images": images, "top_sims": max_similarities})
+
 
 
 # Route to serve result images

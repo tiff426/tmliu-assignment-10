@@ -66,12 +66,19 @@ import numpy as np
 #     df = pd.DataFrame(results)
 #     df.to_pickle('image_embeddings.pickle')
 
+result_dir = "results"
+os.makedirs(result_dir, exist_ok=True)
+
 def find_image(df, query_embedding):
-    impath = None
-    max_similarity = -1
+    # keep an array of images and similarities so I can get top 5 later
+    impaths = []
+    similarities = []
 
     # Ensure query_embedding is a PyTorch tensor and has the correct dimensions
-    query_embedding = torch.tensor(query_embedding).unsqueeze(0) if query_embedding.ndim == 1 else torch.tensor(query_embedding)
+    # query_embedding = torch.tensor(query_embedding).unsqueeze(0) if query_embedding.ndim == 1 else torch.tensor(query_embedding)
+    # trying this instead
+    query_embedding = query_embedding.clone().detach()
+    query_embedding = query_embedding.unsqueeze(0) if query_embedding.ndim == 1 else query_embedding
 
     for _, row in df.iterrows():
         # Check if the embedding exists and is valid
@@ -88,18 +95,29 @@ def find_image(df, query_embedding):
         # Compute cosine similarity
         similarity = F.cosine_similarity(query_embedding, dataset_embedding).item()
 
-        if similarity > max_similarity:
-            max_similarity = similarity
-            impath = row['file_name']  # Store the image path of the closest match
-            impath = './coco_images_resized/' + impath
+        # if similarity > max_similarity:
+        #     max_similarity = similarity
+        #     impath = row['file_name']  # Store the image path of the closest match
+        #     impath = './coco_images_resized/' + impath
+        impaths.append(row['file_name'])
+        similarities.append(similarity)
 
-    print(f"Closest image path: {impath}")
-    print(f"Highest cosine similarity: {max_similarity:.4f}")
+    # fix image paths
+    impaths = ['../coco_images_resized/' + path for path in impaths] 
+    top_5 = np.argsort(similarities)[::-1][:5]
 
-    return impath, max_similarity
+    top_5_images = [impaths[i] for i in top_5]
+    top_5_sims = [similarities[i] for i in top_5]
+
+    return top_5_images, top_5_sims
+
+    # print(f"Closest image path: {impath}")
+    # print(f"Highest cosine similarity: {max_similarity:.4f}")
+
+    #return impath, max_similarity
 
 def embed_image(image_path):
-    model, _, preprocess = open_clip.create_model_and_transforms('ViT-B/32', pretrained='openai')
+    model, _, preprocess = open_clip.create_model_and_transforms('ViT-B/32-quickgelu', pretrained='openai') # adding -quickgelu
 
     # This converts the image to a tensor
     #image = preprocess(Image.open("house.jpg")).unsqueeze(0)
@@ -115,7 +133,7 @@ def embed_image(image_path):
     return query_embedding
 
 def embed_text(text_query):
-    model, _, preprocess = open_clip.create_model_and_transforms('ViT-B/32', pretrained='openai') # wait do i want image and text to u se the same model tho
+    model, _, preprocess = open_clip.create_model_and_transforms('ViT-B/32-quickgelu', pretrained='openai') # wait do i want image and text to u se the same model tho
     token = open_clip.get_tokenizer('ViT-B-32')
     model.eval()
     text = token([text_query]) # change this to be what you want...

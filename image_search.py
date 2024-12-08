@@ -148,7 +148,7 @@ def embed_text(text_query):
     query_embedding = F.normalize(model.encode_text(text))
     return query_embedding
 
-def embed_hybrid(image_path, text_query):
+def embed_hybrid(image_path, text_query, weight):
     # oh but now i can use my other functions!!
     #image =  #preprocess(Image.open("house.jpg")).unsqueeze(0)
     image_query = embed_image(image_path)# F.normalize(model.encode_image(image))
@@ -159,7 +159,7 @@ def embed_hybrid(image_path, text_query):
     # i find that lower lam (aka weighting text less and image more) results in higher cosine similrity
     # but then it doesnt appear as though the actual image is as good..?
     # so liek overfitting... ?
-    lam  = 0.1 # tune this
+    lam  = weight # tune this
 
     query_embedding = F.normalize(lam * text_query + (1.0 - lam) * image_query)
     return query_embedding
@@ -180,7 +180,27 @@ def load_images(image_dir, max_images=None, target_size=(224, 224)):
             break
     return np.array(images), image_names
 
-def find_image_pca(df, query_embeddings):
+# # PCA stuff
+# train_images, train_image_names = load_images(image_dir, max_images=2000, target_size=(224, 224))
+# print(f"Loaded {len(train_images)} images for PCA training.")
+
+# # Apply PCA
+# k = 50 # Number of principal components (eg: 50)
+# pca = PCA(k) #initialize PCA with no. of components
+# #TODO  # Fit PCA on the training subset
+# fit_pca = pca.fit_transform(train_images)
+# print(f"Trained PCA on {len(train_images)} samples.")
+
+# #transform 10000 photos
+# transform_images, transform_image_names = load_images(image_dir, max_images=10000, target_size=(224, 224))
+# print(f"Loaded {len(transform_images)} images for transformation.")
+# reduced_embeddings = pca.transform(transform_images)  # Transform only the first 10,000 images
+# print(f"Reduced embeddings for {len(transform_images)} images.")
+
+def find_image_pca(df, k, image_path):
+    impaths = []
+    distances = []
+
     #this is the framework function for getting images when requested pca embedding type 
 
     # Directory containing images
@@ -191,7 +211,7 @@ def find_image_pca(df, query_embeddings):
     print(f"Loaded {len(train_images)} images for PCA training.")
 
     # Apply PCA
-    k = 50 # Number of principal components (eg: 50)
+    #k = 50 # Number of principal components (eg: 50)
     pca = PCA(k) #initialize PCA with no. of components
     #TODO  # Fit PCA on the training subset
     fit_pca = pca.fit_transform(train_images)
@@ -203,31 +223,61 @@ def find_image_pca(df, query_embeddings):
     reduced_embeddings = pca.transform(transform_images)  # Transform only the first 10,000 images
     print(f"Reduced embeddings for {len(transform_images)} images.")
 
+    #query_embedding = reduced_embeddings[query_idx] instead of this, it's jsut our embedded image
+    #images = []
+    image = Image.open(io.BytesIO(image_path.read())) 
+    image = image.convert('L')  # Convert to grayscale ('L' mode)
+    image = image.resize((224, 224))  # Resize to target size
+    img_array = np.asarray(image, dtype=np.float32) / 255.0  # Normalize pixel values to [0, 1]
+    image = img_array.flatten()  # Flatten to 1D
+    #images.append(image)
 
+    query_embedding = pca.transform(np.array(image).reshape(1, -1))
 
-    pass
+    # top_indices, top_distances = nearest_neighbors(query_embedding, reduced_embeddings)
+
+    # #top_5 = np.argsort(top_distances)[::-1][:5]
+
+    # top_5_images = [transform_image_names[i] for i in top_indices]
+    # top_5_sims = [top_distances[i] for i in top_indices]
+
+    # return top_5_images, top_5_sims
+    top_indices, top_distances = nearest_neighbors(query_embedding, transform_images)
+    print("Top indices:", top_indices)
+    print("Top distances:", top_distances)
+    for i, index in enumerate(top_indices):
+        impath = df['file_name'].iloc[index]
+        similarity = top_distances[i].item()
+        impaths.append(impath)
+        distances.append(similarity)
+        
+    return impaths, distances
+
 
 def pca_image(image_path):
-    #gets query_embeddings with image search
-    transform_query, transform_query_names = load_images(image_path, max_images=10, target_size=(224, 224))
-    print(f"Loaded {len(transform_query)} images for transformation.")
-    # reduced_embeddings = pca.transform(transform_query)  # Transform only the first 10,000 images
-    # print(f"Reduced embeddings for {len(transform_query)} images.")
-    return transform_query[0]
-
-def pca_text(text_query):
-    #gets query_embeddings for text serch
-    pass
-
-def pca_hybrid(text_query, image_path):
-    #gets embeddings for hybrid search
-    pass
+    # #gets query_embeddings with image search
+    # transform_query, transform_query_names = load_images(image_path, max_images=10, target_size=(224, 224))
+    # print(f"Loaded {len(transform_query)} images for transformation.")
+    # # reduced_embeddings = pca.transform(transform_query)  # Transform only the first 10,000 images
+    # # print(f"Reduced embeddings for {len(transform_query)} images.")
+    # return transform_query[0]
+    impaths = []
+    distances = []
+    images = []
+    image = Image.open(io.BytesIO(image_path.read())) 
+    image = image.convert('L')  # Convert to grayscale ('L' mode)
+    image = image.resize((224, 224))  # Resize to target size
+    img_array = np.asarray(image, dtype=np.float32) / 255.0  # Normalize pixel values to [0, 1]
+    image = img_array.flatten()  # Flatten to 1D
+    images.append(image)
+    query_embedding = pca.transform(np.array(image).reshape(1, -1))
+    return query_embedding
 
 def nearest_neighbors(query_embedding, embeddings, top_k=7):
     # query_embedding: The embedding of the query item (e.g., the query image) in the same dimensional space as the other embeddings.
     # embeddings: The dataset of embeddings that you want to search through for the nearest neighbors.
     # top_k: The number of most similar items (nearest neighbors) to return from the dataset.
     # Hint: flatten the "distances" array for convenience because its size would be (1,N)
-    distances = np.linalg.norm(embeddings - query_embedding, axis = 1).flatten() #Use euclidean distance
+    distances = euclidean_distances(query_embedding, embeddings).flatten() #Use euclidean distance
     nearest_indices = np.argsort(distances)[:top_k] #get the indices of ntop k results
     return nearest_indices, distances[nearest_indices]

@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory
 import os
 # from neural_networks import visualize
-from image_search import find_image, embed_image, embed_text, embed_hybrid
+from image_search import find_image, embed_image, embed_text, embed_hybrid, pca_image, find_image_pca
 from PIL import Image
 import pandas as pd
 import torch
@@ -27,8 +27,9 @@ def index():
 @app.route('/image_search', methods=['POST'])
 def image_search():
     query_type = request.form['query_type']
-    use_pca = request.form.get('use_pca', 'false').lower() == 'true'
-    k = 5 #int(request.form.get('k', 10))
+    embedding_type = request.form.get('embedding_type', 'clip')
+    use_pca = embedding_type == 'pca'
+    k = int(request.form.get('k', 10))
 
     if query_type == "text":
         text_query = request.form['text_query']
@@ -42,18 +43,22 @@ def image_search():
         # image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_name)
         # image_file.save(image_path)
         # Get the query embedding for the image
-        query_embedding = embed_image(image_file) # or image_path
-        images, max_similarities = find_image(df, query_embedding)  # df is your dataset with embeddings
+        if not use_pca:
+            query_embedding = embed_image(image_file) # or image_path
+            images, max_similarities = find_image(df, query_embedding)
+        else:
+            #query_embedding = pca_image(image_file)
+            images, max_similarities = find_image_pca(df, k, image_file)  # df is your dataset with embeddings
     elif query_type == "hybrid":
         text_query = request.form['text_query']
         weight = float(request.form['weight'])
         image_file = request.files['image_query']
-        image_path = image_file.filename  # Similarly, save or handle the image path
-        # Get the query embeddings for both image and text
-        image_query_embedding = embed_image(image_path)
-        text_query_embedding = embed_text(text_query)
+        #image_path = image_file.filename  # Similarly, save or handle the image path
+        # Get the query embeddings for both image and text -> dont need these anyore since embed hybrid handles it
+        # image_query_embedding = embed_image(image_path)
+        # text_query_embedding = embed_text(text_query)
         # Combine the embeddings using the hybrid method
-        query_embedding = embed_hybrid(image_path, text_query)
+        query_embedding = embed_hybrid(image_file, text_query, weight)
         images, max_similarities = find_image(df, query_embedding)  # df is your dataset with embeddings
     
     # results = [

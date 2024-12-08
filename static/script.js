@@ -215,7 +215,7 @@ function displayResults(data) {
             // docDiv.src = `/${data.images[i]}`
             const imageUrl = `/results/${data.images[i]}`;// `/Users/tiffliu/Desktop/CS506/tmliu-assignment-10/${data.images[i]}`; // Correct URL path /Users/tiffliu/Desktop/CS506/tmliu-assignment-10/coco_images_resized/COCO_train2014_000000000009.jpg
             // docDiv.style.display = "block";
-            docDiv.innerHTML = `<img src="${imageUrl}" alt="Result Image" style="max-width: 300px;" runat="server"> <br><strong>Similarity: ${data.top_sims[i]}</strong>`;
+            docDiv.innerHTML = `<img src="${imageUrl}" alt="Result Image" style="max-width: 300px;" runat="server"> <br><strong>Cosine Similarity/Distance: ${data.top_sims[i]}</strong>`;
             resultsDiv.appendChild(docDiv);
         }
     } else {

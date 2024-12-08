@@ -214,7 +214,8 @@ def find_image_pca(df, k, image_path):
     #k = 50 # Number of principal components (eg: 50)
     pca = PCA(k) #initialize PCA with no. of components
     #TODO  # Fit PCA on the training subset
-    fit_pca = pca.fit_transform(train_images)
+    #fit_pca = pca.fit_transform(train_images)
+    pca.fit(train_images)
     print(f"Trained PCA on {len(train_images)} samples.")
 
     #transform 10000 photos
@@ -242,7 +243,7 @@ def find_image_pca(df, k, image_path):
     # top_5_sims = [top_distances[i] for i in top_indices]
 
     # return top_5_images, top_5_sims
-    top_indices, top_distances = nearest_neighbors(query_embedding, transform_images)
+    top_indices, top_distances = nearest_neighbors(query_embedding, reduced_embeddings)
     print("Top indices:", top_indices)
     print("Top distances:", top_distances)
     for i, index in enumerate(top_indices):

@@ -5,11 +5,18 @@ from image_search import find_image, embed_image, embed_text, embed_hybrid
 from PIL import Image
 import pandas as pd
 import torch
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# Create upload folder if it doesn't exist
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
 # is there where i define df
-df = df = pd.read_pickle('image_embeddings.pickle')
+df = pd.read_pickle('image_embeddings.pickle')
 
 # Define the main route
 @app.route('/')
@@ -30,9 +37,12 @@ def image_search():
         images, max_similarities = find_image(df, query_embedding)  # df is your dataset with embeddings
     elif query_type == "image":
         image_file = request.files['image_query']
-        image_path = image_file.filename  # You might need to save the image or use a temporary path
+        # image_name = secure_filename(image_file.filename)  # You might need to save the image or use a temporary path
+        # #filename = secure_filename(image_file.filename)
+        # image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_name)
+        # image_file.save(image_path)
         # Get the query embedding for the image
-        query_embedding = embed_image(image_path)
+        query_embedding = embed_image(image_file) # or image_path
         images, max_similarities = find_image(df, query_embedding)  # df is your dataset with embeddings
     elif query_type == "hybrid":
         text_query = request.form['text_query']
@@ -53,8 +63,6 @@ def image_search():
     #     }
     # ]   
     return jsonify({"images": images, "top_sims": max_similarities})
-
-
 
 # Route to serve result images
 @app.route('/results/<filename>')

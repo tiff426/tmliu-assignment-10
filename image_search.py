@@ -13,6 +13,7 @@ import torch.nn.functional as F
 # import pandas as pd
 from tqdm import tqdm
 import numpy as np
+import io
 
 # # Configuration
 # device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -103,7 +104,7 @@ def find_image(df, query_embedding):
         similarities.append(similarity)
 
     # fix image paths
-    impaths = ['../coco_images_resized/' + path for path in impaths] 
+    #impaths = ['../coco_images_resized/' + path for path in impaths] 
     top_5 = np.argsort(similarities)[::-1][:5]
 
     top_5_images = [impaths[i] for i in top_5]
@@ -118,11 +119,16 @@ def find_image(df, query_embedding):
 
 def embed_image(image_path):
     model, _, preprocess = open_clip.create_model_and_transforms('ViT-B/32-quickgelu', pretrained='openai') # adding -quickgelu
-
     # This converts the image to a tensor
     #image = preprocess(Image.open("house.jpg")).unsqueeze(0)
     # this image is my own, and then we make query emebdding with this, then we see what in the dataframe best matches in the next cell
-    image = preprocess(Image.open(image_path)).unsqueeze(0)
+    print("IMAGE PATH!!!!", image_path)
+    # image = preprocess(Image.open(image_path)).unsqueeze(0)
+    if isinstance(image_path, str):
+        image = preprocess(Image.open(image_path)).unsqueeze(0)
+    else:
+        image = Image.open(io.BytesIO(image_path.read())) 
+        image = preprocess(image).unsqueeze(0)
 
     # from IPython.display import Image, display
     # print('This is my query image')

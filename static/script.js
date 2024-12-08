@@ -96,13 +96,13 @@ document.getElementById('query-form').addEventListener('submit', function (event
     if (queryType === "text" && !textQuery) {
         alert("Please enter a text query.");
         return;
-    }
-
+    } 
+    
     if (queryType === "image" && !imageQuery) {
         alert("Please upload an image.");
         return;
-    }
-
+    } 
+    
     if (queryType === "hybrid") {
         if (!textQuery || !imageQuery) {
             alert("Please provide both text query and an image for a hybrid query.");
@@ -117,9 +117,17 @@ document.getElementById('query-form').addEventListener('submit', function (event
     // Prepare form data for the request
     const formData = new FormData();
     formData.append("query_type", queryType);
-    formData.append("text_query", textQuery);
+    if (textQuery) {
+        formData.append("text_query", textQuery);
+    }
     if (imageQuery) {
         formData.append("image_query", imageQuery);
+        // formData.append('file', fileInput.files[0]);
+    
+        // const response = fetch('/compress', {
+        //     method: 'POST',
+        //     body: formData,
+        // });
     }
     if (queryType === "hybrid") {
         formData.append("weight", weight);
@@ -135,8 +143,68 @@ document.getElementById('query-form').addEventListener('submit', function (event
     .then(data => {
         console.log(data);
         displayResults(data);
+        // const resultsDiv = document.getElementById("results");
+        // resultsDiv.style.display = "block";
+        // resultsDiv.innerHTML = '<h2>Results</h2>';
+
+
+        // if (data.images && data.images.length > 0) {
+        //     // Dynamically create the image elements
+        //     for (let i = 0; i < data.images.length; i++) {
+        //         const img = document.createElement("img");
+        //         img.id = `res${i+1}`;
+        //         img.style.display = "none"; // Initially hidden
+        //         resultsDiv.appendChild(img);
+        //     }
+
+        //     // Now safely access them and update
+        //     for (let i = 0; i < data.images.length; i++) {
+        //         const resultImg = document.getElementById(`res${i+1}`);
+        //         if (resultImg) {
+        //             resultImg.src = `/results/${data.images[i]}`;
+        //             resultImg.style.display = "block";
+        //         } else {
+        //             console.log(`res${i+1} not found`);
+        //         }
+        //     }
+        // } else {
+        //     resultsDiv.innerHTML = '<p>No results found.</p>';
+        // }
+
+        // if (data.images && data.images.length > 0) {
+        //     for (let i = 0; i < data.images.length; i++) {
+        //         document.addEventListener("DOMContentLoaded", () => {
+        //             const resultImg = document.getElementById(`res${i+1}`);
+        //             if(resultImg){
+        //                 resultImg.src = `/coco_images_resized/${data.images[i]}`;
+        //                 resultImg.style.display = "block";
+        //             }else{
+        //                 console.log(`res${i+1}`);
+        //             }
+        //         });
+        //     }
+        // } else {
+        //     resultsDiv.innerHTML = '<p>No results found.</p>';
+        // }
     });
 });
+
+// function displayResults(data) {
+//     let resultsDiv = document.getElementById('results');
+//     resultsDiv.innerHTML = '<h2>Results</h2>';
+//     if (data.images && data.images.length > 0) {
+//         for (let i = 0; i < data.images.length; i++) {
+//             let docDiv = document.createElement('div');
+//             docDiv.src = `/${data.images[i]}`;
+//             docDiv.style.display = "block";
+//             // const imageUrl = `/coco_images_resized/${data.images[i]}`;
+//             docDiv.innerHTML = `<strong>Similarity: ${data.top_sims[i]}</strong>`;
+//             resultsDiv.appendChild(docDiv);
+//         }
+//     } else {
+//         resultsDiv.innerHTML = '<p>No results found.</p>';
+//     }
+// }
 
 function displayResults(data) {
     let resultsDiv = document.getElementById('results');
@@ -144,10 +212,33 @@ function displayResults(data) {
     if (data.images && data.images.length > 0) {
         for (let i = 0; i < data.images.length; i++) {
             let docDiv = document.createElement('div');
-            docDiv.innerHTML = `<strong>Image <img src="./coco_images_resized/${data.images[i]}" alt="OH MY GODDDRWFFECWE" style="max-width: 100px;"></strong><br><strong>Similarity: ${data.top_sims[i]}</strong>`;
+            // docDiv.src = `/${data.images[i]}`
+            const imageUrl = `/results/${data.images[i]}`;// `/Users/tiffliu/Desktop/CS506/tmliu-assignment-10/${data.images[i]}`; // Correct URL path /Users/tiffliu/Desktop/CS506/tmliu-assignment-10/coco_images_resized/COCO_train2014_000000000009.jpg
+            // docDiv.style.display = "block";
+            docDiv.innerHTML = `<img src="${imageUrl}" alt="Result Image" style="max-width: 300px;" runat="server"> <br><strong>Similarity: ${data.top_sims[i]}</strong>`;
             resultsDiv.appendChild(docDiv);
         }
     } else {
         resultsDiv.innerHTML = '<p>No results found.</p>';
     }
 }
+
+// function displayResults(data) {
+//     const resultsDiv = document.getElementById("results");
+//     resultsDiv.style.display = "block";
+//     resultsDiv.innerHTML = '<h2>Results</h2>';
+
+//     if (data.images && data.images.length > 0) {
+//         for (let i = 0; i < data.images.length; i++) {
+//             const resultImg = document.getElementById(`res${i+1}`);
+//             if(resultImg){
+//                 resultImg.src = `/coco_images_resized/${data.images[i]}`;
+//                 resultImg.style.display = "block";
+//             }else{
+//                 console.log(`res${i+1}`);
+//             }
+//         }
+//     } else {
+//         resultsDiv.innerHTML = '<p>No results found.</p>';
+//     }
+// }

@@ -14,6 +14,8 @@ import torch.nn.functional as F
 from tqdm import tqdm
 import numpy as np
 import io
+from sklearn.decomposition import PCA
+from sklearn.metrics.pairwise import euclidean_distances
 
 # # Configuration
 # device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -161,3 +163,71 @@ def embed_hybrid(image_path, text_query):
 
     query_embedding = F.normalize(lam * text_query + (1.0 - lam) * image_query)
     return query_embedding
+
+# Already completed for you
+def load_images(image_dir, max_images=None, target_size=(224, 224)):
+    images = []
+    image_names = []
+    for i, filename in enumerate(os.listdir(image_dir)):
+        if filename.endswith('.jpg'):
+            img = Image.open(os.path.join(image_dir, filename))
+            img = img.convert('L')  # Convert to grayscale ('L' mode)
+            img = img.resize(target_size)  # Resize to target size
+            img_array = np.asarray(img, dtype=np.float32) / 255.0  # Normalize pixel values to [0, 1]
+            images.append(img_array.flatten())  # Flatten to 1D
+            image_names.append(filename)
+        if max_images and i + 1 >= max_images:
+            break
+    return np.array(images), image_names
+
+def find_image_pca(df, query_embeddings):
+    #this is the framework function for getting images when requested pca embedding type 
+
+    # Directory containing images
+    image_dir = "results" # Your folder path
+
+    #train pca
+    train_images, train_image_names = load_images(image_dir, max_images=2000, target_size=(224, 224))
+    print(f"Loaded {len(train_images)} images for PCA training.")
+
+    # Apply PCA
+    k = 50 # Number of principal components (eg: 50)
+    pca = PCA(k) #initialize PCA with no. of components
+    #TODO  # Fit PCA on the training subset
+    fit_pca = pca.fit_transform(train_images)
+    print(f"Trained PCA on {len(train_images)} samples.")
+
+    #transform 10000 photos
+    transform_images, transform_image_names = load_images(image_dir, max_images=10000, target_size=(224, 224))
+    print(f"Loaded {len(transform_images)} images for transformation.")
+    reduced_embeddings = pca.transform(transform_images)  # Transform only the first 10,000 images
+    print(f"Reduced embeddings for {len(transform_images)} images.")
+
+
+
+    pass
+
+def pca_image(image_path):
+    #gets query_embeddings with image search
+    transform_query, transform_query_names = load_images(image_path, max_images=10, target_size=(224, 224))
+    print(f"Loaded {len(transform_query)} images for transformation.")
+    # reduced_embeddings = pca.transform(transform_query)  # Transform only the first 10,000 images
+    # print(f"Reduced embeddings for {len(transform_query)} images.")
+    return transform_query[0]
+
+def pca_text(text_query):
+    #gets query_embeddings for text serch
+    pass
+
+def pca_hybrid(text_query, image_path):
+    #gets embeddings for hybrid search
+    pass
+
+def nearest_neighbors(query_embedding, embeddings, top_k=7):
+    # query_embedding: The embedding of the query item (e.g., the query image) in the same dimensional space as the other embeddings.
+    # embeddings: The dataset of embeddings that you want to search through for the nearest neighbors.
+    # top_k: The number of most similar items (nearest neighbors) to return from the dataset.
+    # Hint: flatten the "distances" array for convenience because its size would be (1,N)
+    distances = np.linalg.norm(embeddings - query_embedding, axis = 1).flatten() #Use euclidean distance
+    nearest_indices = np.argsort(distances)[:top_k] #get the indices of ntop k results
+    return nearest_indices, distances[nearest_indices]

@@ -28,7 +28,7 @@ def index():
 def image_search():
     query_type = request.form['query_type']
     use_pca = request.form.get('use_pca', 'false').lower() == 'true'
-    k = int(request.form.get('k', 10))
+    k = 5 #int(request.form.get('k', 10))
 
     if query_type == "text":
         text_query = request.form['text_query']
